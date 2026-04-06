@@ -1,8 +1,10 @@
 
+import botAvatarUrl from './src/nurse-avatar.png';
+
 export const SHEET_ID = '11L_ZsAVeHEh8YYX-Mfunl_jO720JVD_9QN_PE9vFn00';
 
 // รูปหุ่นยนต์พยาบาล (Nurse Robot)
-export const BOT_AVATAR = '/nurse-avatar.png';
+export const BOT_AVATAR = botAvatarUrl;
 
 export const FALLBACK_DATA = `
 ข้อมูลภายในองค์กร (Mock Data สำหรับ Demo):

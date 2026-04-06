@@ -1,10 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ChatWindow from './ChatWindow';
 import { BOT_AVATAR } from './constants';
 
 function App() {
   const [isChatStarted, setIsChatStarted] = useState(false);
   const [initialMessage, setInitialMessage] = useState('');
+  const [showSettings, setShowSettings] = useState(false);
+  const [apiKeyInput, setApiKeyInput] = useState('');
+
+  useEffect(() => {
+    const savedKey = localStorage.getItem('CUSTOM_GEMINI_API_KEY');
+    if (savedKey) setApiKeyInput(savedKey);
+  }, []);
+
+  const saveApiKey = () => {
+    localStorage.setItem('CUSTOM_GEMINI_API_KEY', apiKeyInput);
+    setShowSettings(false);
+  };
 
   const handleStartChat = (msg?: string) => {
     if (msg) {
@@ -33,7 +45,60 @@ function App() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-pink-50 flex items-center justify-center p-4 font-sans">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-pink-50 flex items-center justify-center p-4 font-sans relative">
+      
+      {/* Settings Button */}
+      <button 
+        onClick={() => setShowSettings(true)} 
+        className="absolute top-4 right-4 p-2 text-gray-400 hover:text-pink-500 hover:bg-white/50 rounded-full transition-colors z-20"
+        title="ตั้งค่า API Key"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+      </button>
+
+      {/* Settings Modal */}
+      {showSettings && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl border border-pink-100">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center text-pink-500">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                </svg>
+              </div>
+              <h2 className="text-xl font-bold text-gray-800">ตั้งค่า API Key</h2>
+            </div>
+            <p className="text-sm text-gray-500 mb-4 leading-relaxed">
+              หากคุณมี Gemini API Key ของตัวเอง สามารถนำมาใส่ที่นี่ได้เลยค่ะ ระบบจะจดจำไว้ในเครื่องของคุณ
+            </p>
+            <input 
+              type="password" 
+              value={apiKeyInput}
+              onChange={(e) => setApiKeyInput(e.target.value)}
+              placeholder="AIzaSy..."
+              className="w-full border border-gray-200 rounded-xl p-3 mb-6 focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-transparent transition-all"
+            />
+            <div className="flex justify-end gap-3">
+              <button 
+                onClick={() => setShowSettings(false)} 
+                className="px-4 py-2 text-gray-500 hover:bg-gray-100 rounded-xl transition-colors font-medium"
+              >
+                ยกเลิก
+              </button>
+              <button 
+                onClick={saveApiKey} 
+                className="px-5 py-2 bg-gradient-to-r from-pink-500 to-rose-400 text-white rounded-xl shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all font-medium"
+              >
+                บันทึก
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="bg-white/80 backdrop-blur-sm p-8 md:p-10 rounded-[2.5rem] shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] max-w-sm w-full text-center space-y-6 relative overflow-hidden border border-white/50">
         
         {/* Decorative Background Elements */}
