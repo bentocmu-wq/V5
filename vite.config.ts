@@ -8,10 +8,6 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
-    define: {
-      // This ensures process.env.GEMINI_API_KEY works in the code even in the browser
-      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY || process.env.GEMINI_API_KEY),
-    },
     server: {
       port: 3000,
     }
