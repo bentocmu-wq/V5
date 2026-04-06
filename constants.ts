@@ -1,5 +1,5 @@
 
-import botAvatarUrl from './src/nurse-avatar.png';
+import botAvatarUrl from './nurse-avatar.png';
 
 export const SHEET_ID = '11L_ZsAVeHEh8YYX-Mfunl_jO720JVD_9QN_PE9vFn00';
 

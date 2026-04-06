@@ -2,37 +2,24 @@ import { GoogleGenAI } from "@google/genai";
 import { SYSTEM_PROMPT_TEMPLATE } from "./constants";
 import { Message, Sender } from "./types";
 
-let currentApiKey = "";
 let geminiClient: GoogleGenAI | null = null;
 
 const getClient = () => {
-  let apiKey = "";
-  
-  // 1. Check localStorage first (User's custom key)
-  if (typeof window !== 'undefined') {
-    apiKey = localStorage.getItem('CUSTOM_GEMINI_API_KEY') || "";
-  }
+  if (!geminiClient) {
+    let apiKey = "";
+    if (typeof process !== 'undefined' && process.env) {
+      apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY || "";
+    } 
+    if (!apiKey && typeof import.meta !== 'undefined' && import.meta.env) {
+      apiKey = (import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY) as string;
+    }
 
-  // 2. Fallback to Environment Variables
-  if (!apiKey && typeof process !== 'undefined' && process.env) {
-    apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY || "";
-  } 
-  if (!apiKey && typeof import.meta !== 'undefined' && import.meta.env) {
-    apiKey = (import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY) as string;
+    if (!apiKey || apiKey === "undefined" || apiKey === "") {
+      console.error("API_KEY is missing. process.env:", typeof process !== 'undefined' ? process.env : 'undefined');
+      throw new Error("MISSING_API_KEY");
+    }
+    geminiClient = new GoogleGenAI({ apiKey });
   }
-
-  if (!apiKey || apiKey === "undefined" || apiKey === "") {
-    console.error("API_KEY is missing. process.env:", typeof process !== 'undefined' ? process.env : 'undefined');
-    throw new Error("MISSING_API_KEY");
-  }
-
-  // Recreate client if API key has changed
-  if (geminiClient && currentApiKey === apiKey) {
-    return geminiClient;
-  }
-
-  currentApiKey = apiKey;
-  geminiClient = new GoogleGenAI({ apiKey });
   return geminiClient;
 };
 
