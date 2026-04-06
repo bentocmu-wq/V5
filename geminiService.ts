@@ -6,9 +6,16 @@ let geminiClient: GoogleGenAI | null = null;
 
 const getClient = () => {
   if (!geminiClient) {
-    const apiKey = process.env.GEMINI_API_KEY;
+    let apiKey = "";
+    if (typeof process !== 'undefined' && process.env) {
+      apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY || "";
+    } 
+    if (!apiKey && typeof import.meta !== 'undefined' && import.meta.env) {
+      apiKey = (import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY) as string;
+    }
+
     if (!apiKey || apiKey === "undefined" || apiKey === "") {
-      console.error("GEMINI_API_KEY is missing in process.env");
+      console.error("API_KEY is missing. process.env:", typeof process !== 'undefined' ? process.env : 'undefined');
       throw new Error("MISSING_API_KEY");
     }
     geminiClient = new GoogleGenAI({ apiKey });
