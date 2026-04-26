@@ -6,16 +6,16 @@ let geminiClient: GoogleGenAI | null = null;
 
 const getClient = () => {
   if (!geminiClient) {
-    let apiKey = "";
-    if (typeof process !== 'undefined' && process.env) {
-      apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY || "";
-    } 
-    if (!apiKey && typeof import.meta !== 'undefined' && import.meta.env) {
-      apiKey = (import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY) as string;
+    // Vite will statically replace process.env.GEMINI_API_KEY at build time
+    let apiKey = process.env.GEMINI_API_KEY;
+    
+    // Fallback for Vite env vars if needed
+    if (!apiKey || apiKey === "undefined" || apiKey === "") {
+      apiKey = import.meta.env?.VITE_GEMINI_API_KEY || import.meta.env?.VITE_API_KEY || "";
     }
 
     if (!apiKey || apiKey === "undefined" || apiKey === "") {
-      console.error("API_KEY is missing. process.env:", typeof process !== 'undefined' ? process.env : 'undefined');
+      console.error("API_KEY is missing.");
       throw new Error("MISSING_API_KEY");
     }
     geminiClient = new GoogleGenAI({ apiKey });
@@ -28,56 +28,76 @@ export const generateResponse = async (
   history: Message[],
   dataContext: string
 ): Promise<string> => {
-  try {
-    const client = getClient();
-    
-    const systemInstruction = SYSTEM_PROMPT_TEMPLATE.replace('{{DATA_CONTEXT}}', dataContext);
+  const maxRetries = 2;
+  let lastError: any = null;
 
-    const recentHistory = history.slice(-6).map(msg => ({
-      role: msg.sender === Sender.USER ? 'user' : 'model',
-      parts: [{ text: msg.text }]
-    }));
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const client = getClient();
+      
+      const systemInstruction = SYSTEM_PROMPT_TEMPLATE.replace('{{DATA_CONTEXT}}', dataContext);
 
-    const model = 'gemini-3-flash-preview';
+      const recentHistory = history.slice(-6).map(msg => ({
+        role: msg.sender === Sender.USER ? 'user' : 'model',
+        parts: [{ text: msg.text }]
+      }));
 
-    const chat = client.chats.create({
-      model: model,
-      config: {
-        systemInstruction: systemInstruction,
-        temperature: 0.3,
-      },
-      history: recentHistory
-    });
+      const model = 'gemini-2.0-flash';
 
-    const result = await chat.sendMessage({
-        message: userMessage
-    });
+      const chat = client.chats.create({
+        model: model,
+        config: {
+          systemInstruction: systemInstruction,
+          temperature: 0.3,
+        },
+        history: recentHistory
+      });
 
-    return result.text || "ขออภัยค่ะ ระบบขัดข้องชั่วคราว (No Response)";
+      const result = await chat.sendMessage({
+          message: userMessage
+      });
 
-  } catch (error: any) {
-    console.error("Gemini API Error Detail:", error);
-    
-    const errStr = error.toString();
-    const errMsg = error.message || "";
+      return result.text || "ขออภัยค่ะ ระบบขัดข้องชั่วคราว (No Response)";
 
-    // Specific Error Handling for User Feedback
-    if (errMsg === "MISSING_API_KEY") {
-        return "⚠️ ขออภัยค่ะ ระบบยังไม่พบ API Key\n(กรุณาไปที่ Vercel > Settings > Environment Variables > เพิ่ม API_KEY)";
+    } catch (error: any) {
+      lastError = error;
+      const errStr = error.toString();
+      
+      // If it's a rate limit (429) or server error (500), try again after a short delay
+      if ((errStr.includes("429") || errStr.includes("500") || errStr.includes("503")) && attempt < maxRetries) {
+        console.warn(`Retry attempt ${attempt + 1} due to error:`, errStr);
+        await new Promise(resolve => setTimeout(resolve, 1500 * (attempt + 1))); // Exponential-ish backoff
+        continue;
+      }
+      
+      // For other errors (like 400, 403), don't retry
+      break; 
     }
-
-    if (errStr.includes("400") || errStr.includes("INVALID_ARGUMENT")) {
-        return "❌ API Key ไม่ถูกต้อง (Error 400)\n(กรุณาตรวจสอบว่า Copy รหัสมาครบไหม มีเว้นวรรคเกินมาหรือไม่)";
-    }
-
-    if (errStr.includes("403") || errStr.includes("PERMISSION_DENIED")) {
-        return "🚫 สิทธิ์การเข้าถึงถูกปฏิเสธ (Error 403)\n(อาจเกิดจาก Key ผิดประเภท หรือยังไม่ได้เปิดใช้บริการใน Google Cloud)";
-    }
-    
-    if (errStr.includes("429")) {
-        return "⏳ ระบบกำลังทำงานหนัก (Rate Limit)\n(กรุณารอสักครู่แล้วถามใหม่นะคะ)";
-    }
-
-    return `⚠️ เกิดข้อผิดพลาดทางเทคนิค:\n"${errMsg || errStr}"\n(โปรดแจ้งปัญหานี้ให้ผู้ดูแลระบบทราบ)`;
   }
+
+  // If we reach here, it failed after retries
+  const error = lastError;
+  console.error("Gemini API Error Detail:", error);
+  
+  const errStr = error.toString();
+  const errMsg = error.message || "";
+
+  // Specific Error Handling for User Feedback
+  if (errMsg === "MISSING_API_KEY") {
+      return "⚠️ ขออภัยค่ะ ระบบยังไม่พบ API Key\n(หากใช้งานบน Cloud Run ระบบจะจัดการให้อัตโนมัติ แต่หากรันที่อื่นโปรดตรวจสอบ Environment Variables)";
+  }
+
+  if (errStr.includes("400") || errStr.includes("INVALID_ARGUMENT")) {
+      return "❌ API Key ไม่ถูกต้อง (Error 400)\n(กรุณาตรวจสอบว่า Copy รหัสมาครบไหม มีเว้นวรรคเกินมาหรือไม่)";
+  }
+
+  if (errStr.includes("403") || errStr.includes("PERMISSION_DENIED")) {
+      return "🚫 สิทธิ์การเข้าถึงถูกปฏิเสธ (Error 403)\n(อาจเกิดจาก Key ผิดประเภท หรือยังไม่ได้เปิดใช้บริการใน Google Cloud)";
+  }
+  
+  if (errStr.includes("429")) {
+      return "⏳ ขออภัยค่ะ ช่วงนี้มีผู้ใช้งานห้องแชทเยอะมาก (Rate Limit)\n(พี่แก้วรบกวนรอสัก 1-2 นาทีแล้วค่อยพิมพ์ใหม่นะคะ หรือลองถามสั้นลงนิดนึงค่ะ)";
+  }
+
+  return `⚠️ เกิดข้อผิดพลาดทางเทคนิค:\n"${errMsg || errStr}"\n(โปรดแจ้งปัญหานี้ให้ผู้ดูแลระบบทราบ)`;
 };

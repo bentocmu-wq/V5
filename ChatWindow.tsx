@@ -99,40 +99,58 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, initialMessage }) => {
   // Initialize Data
   useEffect(() => {
     const initData = async () => {
-      setIsLoading(true);
-      
-      // Load frequent questions
+      // Try to restore from sessionStorage
+      const savedMessages = sessionStorage.getItem('nurse_kaew_chat_session');
+      if (savedMessages) {
+        try {
+          const parsed = JSON.parse(savedMessages);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setMessages(parsed.map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) })));
+            setIsLoading(false);
+          }
+        } catch (e) {
+          console.error("Failed to parse saved session", e);
+        }
+      }
+
       const topQuestions = getTopFrequentQuestions(3);
       setFrequentQuestions(topQuestions.length > 0 ? topQuestions : ["เบอร์โทรภายใน", "ตามเปลล้อ", "ระบบตรวจเช็คต่างๆ"]);
 
-      // Simulate connection delay for realism
-      await new Promise(r => setTimeout(r, 800));
-      
       const sheetData = await fetchSheetData();
       setDataContext(sheetData.content);
       
-      const initialMsg: Message = {
-        id: 'init-1',
-        text: sheetData.source === 'LIVE' 
-          ? 'สวัสดีค่ะ! พี่แก้วพร้อมดูแลแล้วค่ะ 💖\n\nพี่แก้วสามารถช่วยตอบคำถามเรื่อง:\n• 📞 เบอร์โทรภายใน\n• 🦽 ตามเปลล้อ\n• 🔍 ระบบตรวจเช็คต่างๆ\n\nพิมพ์ถามพี่แก้ว หรือเลือกคำถามด้านล่างได้เลยนะคะ 😊'
-          : 'สวัสดีค่ะ! พี่แก้วพร้อมดูแลแล้วค่ะ (ข้อมูลจำลอง) 💖\n\nพี่แก้วสามารถช่วยตอบคำถามเรื่อง:\n• 📞 เบอร์โทรภายใน\n• 🦽 ตามเปลล้อ\n• 🔍 ระบบตรวจเช็คต่างๆ\n\nพิมพ์ถามพี่แก้ว หรือเลือกคำถามด้านล่างได้เลยนะคะ 😊',
-        sender: Sender.BOT,
-        timestamp: new Date()
-      };
-      
-      setMessages([initialMsg]);
-      setIsLoading(false);
+      // Only set initial message if there are no saved messages
+      setMessages(prev => {
+        if (prev.length > 0) return prev;
 
-      if (initialMessage) {
-        sendMessage(initialMessage, [initialMsg], sheetData.content);
-      }
+        const initialMsg: Message = {
+          id: 'init-1',
+          text: sheetData.source === 'LIVE' 
+            ? 'สวัสดีค่ะ! พี่แก้วพร้อมดูแลแล้วค่ะ 💖\n\nพี่แก้วสามารถช่วยตอบคำถามเรื่อง:\n• 📞 เบอร์โทรภายใน\n• 🦽 ตามเปลล้อ\n• 🔍 ระบบตรวจเช็คต่างๆ\n\nพิมพ์ถามพี่แก้ว หรือเลือกคำถามด้านล่างได้เลยนะคะ 😊'
+            : 'สวัสดีค่ะ! พี่แก้วพร้อมดูแลแล้วค่ะ (ข้อมูลจำลอง) 💖\n\nพี่แก้วสามารถช่วยตอบคำถามเรื่อง:\n• 📞 เบอร์โทรภายใน\n• 🦽 ตามเปลล้อ\n• 🔍 ระบบตรวจเช็คต่างๆ\n\nพิมพ์ถามพี่แก้ว หรือเลือกคำถามด้านล่างได้เลยนะคะ 😊',
+          sender: Sender.BOT,
+          timestamp: new Date()
+        };
+
+        if (initialMessage) {
+           sendMessage(initialMessage, [initialMsg], sheetData.content);
+        }
+        
+        return [initialMsg];
+      });
+      
+      setIsLoading(false);
     };
 
     initData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Save messages to sessionStorage whenever they change
   useEffect(() => {
+    if (messages.length > 0) {
+      sessionStorage.setItem('nurse_kaew_chat_session', JSON.stringify(messages));
+    }
     scrollToBottom();
   }, [messages, isLoading]);
 
