@@ -42,7 +42,7 @@ export const generateResponse = async (
         parts: [{ text: msg.text }]
       }));
 
-      const model = 'gemini-3.5-flash';
+      const model = 'gemini-3.8-flash';
 
       const chat = client.chats.create({
         model: model,

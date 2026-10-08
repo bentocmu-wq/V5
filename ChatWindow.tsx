@@ -5,6 +5,9 @@ import LoadingDots from './LoadingDots';
 import { fetchSheetData } from './sheetService';
 import { generateResponse } from './geminiService';
 import { BOT_AVATAR } from './constants';
+import { UserStatsBar } from './UserStatsBar';
+import { recordQuestionAnswered } from './userStatsService';
+import { FeedbackModal } from './FeedbackModal';
 
 const LOCAL_STORAGE_KEY = 'nurse_kaew_frequent_questions';
 
@@ -43,6 +46,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, initialMessage }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [dataContext, setDataContext] = useState<string>('');
   const [frequentQuestions, setFrequentQuestions] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -55,8 +59,9 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, initialMessage }) => {
   const sendMessage = async (text: string, currentMessages: Message[], context: string) => {
     if (!text.trim()) return;
 
-    // Update frequent questions in local storage
+    // Update frequent questions in local storage & record answered question
     updateFrequentQuestions(text.trim());
+    recordQuestionAnswered();
     const topQuestions = getTopFrequentQuestions(3);
     setFrequentQuestions(topQuestions.length > 0 ? topQuestions : ["เบอร์โทรภายใน", "ตามเปลล้อ", "ระบบตรวจเช็คต่างๆ"]);
 
@@ -193,11 +198,22 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, initialMessage }) => {
                 </p>
             </div>
         </div>
-        {/* Optional Right Icon */}
-        <button className="text-white/80 hover:text-white p-2">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+        {/* Header Right Action: Feedback Button */}
+        <button 
+          onClick={() => setIsFeedbackOpen(true)}
+          className="bg-white/20 hover:bg-white/30 text-white text-xs font-semibold px-2.5 py-1.5 rounded-xl transition-colors flex items-center gap-1 shadow-2xs active:scale-95"
+          title="แบบประเมินความพึงพอใจและข้อเสนอแนะ"
+        >
+          <span>⭐</span>
+          <span className="hidden sm:inline">ประเมิน / ติชม</span>
         </button>
       </header>
+
+      {/* Cumulative Stats Sub-header */}
+      <UserStatsBar 
+        variant="chat-header" 
+        onOpenFeedback={() => setIsFeedbackOpen(true)} 
+      />
 
       {/* Chat Area */}
       <div className="flex-1 overflow-y-auto p-4 bg-slate-50 scroll-smooth" style={{ backgroundImage: 'radial-gradient(#e2e8f0 1px, transparent 1px)', backgroundSize: '20px 20px' }}>
@@ -260,6 +276,12 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ onBack, initialMessage }) => {
           พี่พยาบาลแก้วรอบรู้ตอบคำถามจากข้อมูลใน Sheet เท่านั้น
         </div>
       </div>
+
+      {/* Feedback & Satisfaction Survey Modal */}
+      <FeedbackModal 
+        isOpen={isFeedbackOpen} 
+        onClose={() => setIsFeedbackOpen(false)} 
+      />
     </div>
   );
 };
