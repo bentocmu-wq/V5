@@ -36,16 +36,8 @@ function App() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-pink-50 flex flex-col font-sans relative">
-      {/* Top Stats Banner */}
-      <UserStatsBar 
-        variant="top-banner" 
-        onOpenFeedback={() => setIsFeedbackOpen(true)} 
-        className="sticky top-0 z-30"
-      />
-
-      <div className="flex-1 flex items-center justify-center p-4">
-        <div className="bg-white/85 backdrop-blur-sm p-6 md:p-8 rounded-[2.5rem] shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] max-w-sm w-full text-center space-y-5 relative overflow-hidden border border-white/60">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-pink-50 flex items-center justify-center p-4 font-sans relative">
+      <div className="bg-white/85 backdrop-blur-sm p-6 md:p-8 rounded-[2.5rem] shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] max-w-sm w-full text-center space-y-5 relative overflow-hidden border border-white/60">
           
           {/* Decorative Background Elements */}
           <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-pink-300 via-purple-300 to-blue-300"></div>
@@ -119,7 +111,6 @@ function App() {
               AI Assistant • Internal Only
           </div>
         </div>
-      </div>
 
       {/* Feedback & Satisfaction Modal */}
       <FeedbackModal 
